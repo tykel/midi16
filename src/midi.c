@@ -2,17 +2,18 @@
 
 static uint32_t read_varlen(uint8_t **m)
 {
-    uint32_t dt;
+    uint32_t dt = 0;
     uint8_t **p = m;
 
-    if(!(**p & 0x80)) return UINT32_MAX;
+    if(!(**p & 0x80))
+        return *(*p)++;
     while(**p & 0x80) {
-        dt = (dt << 8) | (**p++ & 0x7f);
+        dt = (dt << 8) | (*((*p)++) & 0x7f);
     }
     return dt;
 }
 
-static midi_event_t midi_event_next(void *m)
+midi_event_t midi_event_next(void *m)
 {
     midi_event_t e;
     uint8_t i, *p = m;
@@ -90,6 +91,7 @@ static midi_event_t midi_event_next(void *m)
                     e.param_len = e.varlen & 0xFF;
                     for(i = 0; i < e.param_len; i++)
                         e.params[i] = *p++;
+                    e.is_ascii = 1;
                     break;
                 case MIDI_META_END:
                     e.param_len = *p++;

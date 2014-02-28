@@ -25,9 +25,11 @@
 int main(int argc, char **argv)
 {
     FILE *fmid = NULL;
-    int size = 0;
+    int size = 0, i;
     uint8_t *bufmid = NULL;
     midi_header_t *h = NULL;
+    midi_track_t *tc = NULL;
+    midi_event_t ev;
 
     if(argc <= 1) {
         fprintf(stderr,"error: no MIDI file specified\n");
@@ -50,9 +52,28 @@ int main(int argc, char **argv)
     fclose(fmid);
 
     h = (midi_header_t*) bufmid;
-    printf("debug: id='%c%c%c%c' size=%d type=%x tracks=%x time_div=%x\n",
+    printf("debug: id='%c%c%c%c' size=%u type=0x%x tracks=%u time_div=%u\n",
             h->id[0], h->id[1], h->id[2], h->id[3],
             hdr_size_le(h), hdr_type_le(h), hdr_tracks_le(h), hdr_tdiv_le(h));
 
+    tc = (midi_track_t *)(bufmid + sizeof(midi_header_t));
+    printf("debug: [track 0] id='%c%c%c%c' size=%u\n",
+           tc->id[0], tc->id[1], tc->id[2], tc->id[3], chk_size_le(tc));
+
+    ev = midi_event_next(&tc->events);
+    printf("debug: [track 0]\n"
+           "       +[event 0] dt=%u status=0x%x param_len=%u\n",
+           ev.dt, ev.status, ev.param_len);
+    if(ev.is_ascii) {
+        printf("                  params='%s'\n", (char *) ev.params);
+    }
+    else {
+        printf("                  params=[");
+        for(i = 0; i < ev.param_len; i++) printf(" %x", ev.params[i]);
+        printf(" ]\n");
+    }
+
+    free(bufmid);
+    
     return 0;
 }

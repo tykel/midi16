@@ -157,12 +157,16 @@ typedef struct
     uint32_t dt;
     /* Event status */
     uint8_t status;
+    /* Meta-event type (only set when status==0xFF) */
+    uint8_t meta;
     /* Parameters */
     uint8_t params[MIDI_CMD_MAX_SIZE];
     /* Lookup number of params quickly */
     uint8_t param_len;
     /* Variable length value (only SYSEX events) */
     uint32_t varlen;
+    /* Lookup if params are an ASCII string */
+    int8_t is_ascii;
 
 } midi_event_t;
 
@@ -171,7 +175,7 @@ typedef struct
 static uint32_t read_varlen(uint8_t **m);
 
 /* Read the next MIDI event from memoru */
-static midi_event_t midi_event_next(void *m);
+midi_event_t midi_event_next(void *m);
 
 
 /* Helper functions for octave and note extraction */

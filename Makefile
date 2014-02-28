@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-O2 -std=c99
+CFLAGS=-O0 -g -std=c99
 LDFLAGS=
 OBJECTS=obj/main.o obj/midi.o
 
