@@ -25,11 +25,10 @@
 int main(int argc, char **argv)
 {
     FILE *fmid = NULL;
-    int size = 0, i;
+    int size = 0, i, j;
     uint8_t *bufmid = NULL;
     midi_header_t *h = NULL;
     midi_track_t *tc = NULL;
-    midi_event_t ev;
 
     if(argc <= 1) {
         fprintf(stderr,"error: no MIDI file specified\n");
@@ -60,17 +59,24 @@ int main(int argc, char **argv)
     printf("debug: [track 0] id='%c%c%c%c' size=%u\n",
            tc->id[0], tc->id[1], tc->id[2], tc->id[3], chk_size_le(tc));
 
-    ev = midi_event_next(&tc->events);
-    printf("debug: [track 0]\n"
-           "       +[event 0] dt=%u status=0x%x param_len=%u\n",
-           ev.dt, ev.status, ev.param_len);
-    if(ev.is_ascii) {
-        printf("                  params='%s'\n", (char *) ev.params);
-    }
-    else {
-        printf("                  params=[");
-        for(i = 0; i < ev.param_len; i++) printf(" %x", ev.params[i]);
-        printf(" ]\n");
+    void *p = (void *) &tc->events;
+    for(i = 0; ; i++) {
+        midi_event_t ev = midi_event_next(&p);
+        printf("debug: [track 0]\n"
+               "       +[event %d] dt=%u status=0x%x%c",
+               i, ev.dt, ev.status,
+               ev.status == MIDI_CMD_SYS_RESET ? ' ' : '\n');
+        if(ev.status == MIDI_CMD_SYS_RESET) printf("meta=0x%02x\n", ev.meta);
+        if(ev.is_ascii) {
+            printf("                  params='%s'\n", (char *) ev.params);
+        }
+        else {
+            printf("                  params=[");
+            for(j = 0; j < ev.param_len; j++) printf(" %02x", ev.params[j]);
+            printf(" ]\n");
+        }
+        if(ev.meta == MIDI_META_END)
+            break;
     }
 
     free(bufmid);

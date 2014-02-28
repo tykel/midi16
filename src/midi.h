@@ -175,7 +175,7 @@ typedef struct
 static uint32_t read_varlen(uint8_t **m);
 
 /* Read the next MIDI event from memoru */
-midi_event_t midi_event_next(void *m);
+midi_event_t midi_event_next(void **m);
 
 
 /* Helper functions for octave and note extraction */
