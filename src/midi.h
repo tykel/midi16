@@ -168,7 +168,7 @@ typedef struct
 
 
 /* (Internal) Read variable-length dt used in event */
-static uint32_t __midi_event_dt(uint8_t **m);
+static uint32_t read_varlen(uint8_t **m);
 
 /* Read the next MIDI event from memoru */
 static midi_event_t midi_event_next(void *m);

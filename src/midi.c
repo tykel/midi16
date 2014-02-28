@@ -1,6 +1,6 @@
 #include "midi.h"
 
-static uint32_t __midi_event_dt(uint8_t **m)
+static uint32_t read_varlen(uint8_t **m)
 {
     uint32_t dt;
     uint8_t **p = m;
@@ -17,7 +17,7 @@ static midi_event_t midi_event_next(void *m)
     midi_event_t e;
     uint8_t i, *p = m;
 
-    e.dt = __midi_event_dt(&p);
+    e.dt = read_varlen(&p);
     if(e.dt == UINT32_MAX) 
         /* invalid delta time; e is in an error state */
         return e;
@@ -50,7 +50,7 @@ static midi_event_t midi_event_next(void *m)
         case MIDI_CMD_NON_MUS:
             switch(e.status) {
             case MIDI_CMD_SYSEX_START:
-                e.varlen = __midi_event_dt(&p);
+                e.varlen = read_varlen(&p);
                 /* Clamp length to 255... hopefully this doesn't break much. */
                 e.param_len = e.varlen & 0xFF;
                 for(i = 0; i < e.param_len; i++) {
@@ -86,7 +86,7 @@ static midi_event_t midi_event_next(void *m)
                 case MIDI_META_CUE_PT:
                 case MIDI_META_PRG_NAME:
                 case MIDI_META_DEV_NAME:
-                    e.varlen = __midi_event_dt(&p);
+                    e.varlen = read_varlen(&p);
                     e.param_len = e.varlen & 0xFF;
                     for(i = 0; i < e.param_len; i++)
                         e.params[i] = *p++;
