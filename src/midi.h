@@ -104,10 +104,10 @@ static inline uint32_t chk_size_le(midi_track_t *t)
 
 
 
-/* Masks MIDI commands and not data bytes */
+/* MIDI command mask*/
 #define MIDI_CMD_FLAG 0x80
 
-/* MIDI command type masks */
+/* MIDI event command types */
 #define MIDI_CMD_NOTE_OFF   0x80
 #define MIDI_CMD_NOTE_ON    0x90
 #define MIDI_CMD_AFTERTOUCH 0xA0
@@ -117,6 +117,7 @@ static inline uint32_t chk_size_le(midi_track_t *t)
 #define MIDI_CMD_PITCH_BEND 0xE0
 #define MIDI_CMD_NON_MUS    0xF0
 
+/* MIDI SYSEX event types */
 #define MIDI_CMD_SYSEX_START    0xF0
 #define MIDI_CMD_TCQF           0xF1
 #define MIDI_CMD_SONG_POS       0xF2
@@ -130,6 +131,25 @@ static inline uint32_t chk_size_le(midi_track_t *t)
 #define MIDI_CMD_ACT_SENS       0xFE
 #define MIDI_CMD_SYS_RESET      0xFF
 
+/* MIDI Meta-event types */
+#define MIDI_META_SEQ_NUM   0x00
+#define MIDI_META_TEXT      0x01
+#define MIDI_META_COPYRIGHT 0x02
+#define MIDI_META_SEQ_NAME  0x03
+#define MIDI_META_INSTR     0x04
+#define MIDI_META_LYRIC     0x05
+#define MIDI_META_MARKER    0x06
+#define MIDI_META_CUE_PT    0x07
+#define MIDI_META_PRG_NAME  0x08
+#define MIDI_META_DEV_NAME  0x09
+#define MIDI_META_END       0x2F
+#define MIDI_META_TEMPO     0x51
+#define MIDI_META_TIMESIG   0x58
+#define MIDI_META_KEYSIG    0x59
+#define MIDI_META_PROPR     0x7F
+
+#define MIDI_CMD_MAX_SIZE       255
+
 /* MIDI Event structure */
 typedef struct
 {
@@ -137,19 +157,32 @@ typedef struct
     uint32_t dt;
     /* Event status */
     uint8_t status;
+    /* Parameters */
+    uint8_t params[MIDI_CMD_MAX_SIZE];
+    /* Lookup number of params quickly */
+    uint8_t param_len;
+    /* Variable length value (only SYSEX events) */
+    uint32_t varlen;
 
 } midi_event_t;
 
 
 /* (Internal) Read variable-length dt used in event */
-static uint32_t __midi_event_dt(void **m);
+static uint32_t __midi_event_dt(uint8_t **m);
 
 /* Read the next MIDI event from memoru */
 static midi_event_t midi_event_next(void *m);
 
 
 /* Helper functions for octave and note extraction */
-inline int get_octave(uint32_t n);
-inline int get_note(uint32_t n);
+inline int get_octave(uint32_t n)
+{
+    return n / 12;
+}
+
+inline int get_note(uint32_t n)
+{
+    return n % 12;
+}
 
 #endif
