@@ -40,6 +40,8 @@
 #define FMT_MULTI_TRACK_ASYNC   0x0002
 
 
+struct __midi_event_t;
+
 /* MIDI Header structure. */
 typedef struct
 {
@@ -90,7 +92,10 @@ typedef struct
     uint8_t size[4];
 
     /* Midi events pointer */
-    uint8_t *events;
+    struct __midi_event_t *events;
+
+    /* Number of events */
+    int num_events;
 
 } midi_track_t;
 
@@ -151,7 +156,7 @@ static inline uint32_t chk_size_le(midi_track_t *t)
 #define MIDI_CMD_MAX_SIZE       255
 
 /* MIDI Event structure */
-typedef struct
+typedef struct __midi_event_t
 {
     /* Delta-time since last event, in time divs */
     uint32_t dt;
@@ -159,24 +164,28 @@ typedef struct
     uint8_t status;
     /* Meta-event type (only set when status==0xFF) */
     uint8_t meta;
-    /* Parameters */
-    uint8_t params[MIDI_CMD_MAX_SIZE];
     /* Lookup number of params quickly */
     uint8_t param_len;
+    /* Parameters */
+    uint8_t params[MIDI_CMD_MAX_SIZE];
+
     /* Variable length value (only SYSEX events) */
     uint32_t varlen;
     /* Lookup if params are an ASCII string */
     int8_t is_ascii;
+    /* Next event for traversal */
+    struct __midi_event_t *next;
 
 } midi_event_t;
-
 
 /* (Internal) Read variable-length dt used in event */
 static uint32_t read_varlen(uint8_t **m);
 
 /* Read the next MIDI event from memoru */
-midi_event_t midi_event_next(void **m);
+midi_event_t* midi_event_next(void **m);
 
+/* Read a whole track of events */
+midi_track_t midi_read_track(void **m);
 
 /* Helper functions for octave and note extraction */
 inline int get_octave(uint32_t n)

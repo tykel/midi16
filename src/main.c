@@ -27,8 +27,10 @@ int main(int argc, char **argv)
     FILE *fmid = NULL;
     int size = 0, i, j;
     uint8_t *bufmid = NULL;
+    void *p = NULL;
     midi_header_t *h = NULL;
-    midi_track_t *tc = NULL;
+    midi_track_t tc;
+    midi_event_t *ev = NULL;
 
     if(argc <= 1) {
         fprintf(stderr,"error: no MIDI file specified\n");
@@ -55,28 +57,28 @@ int main(int argc, char **argv)
             h->id[0], h->id[1], h->id[2], h->id[3],
             hdr_size_le(h), hdr_type_le(h), hdr_tracks_le(h), hdr_tdiv_le(h));
 
-    tc = (midi_track_t *)(bufmid + sizeof(midi_header_t));
+    p = (bufmid + sizeof(midi_header_t));
+    tc = midi_read_track(&p);
     printf("debug: [track 0] id='%c%c%c%c' size=%u\n",
-           tc->id[0], tc->id[1], tc->id[2], tc->id[3], chk_size_le(tc));
+           tc.id[0], tc.id[1], tc.id[2], tc.id[3], chk_size_le(&tc));
 
-    void *p = (void *) &tc->events;
-    for(i = 0; ; i++) {
-        midi_event_t ev = midi_event_next(&p);
+    ev = tc.events;
+    for(i = 0; i < tc.num_events; i++) {
         printf("debug: [track 0]\n"
                "       +[event %d] dt=%u status=0x%x%c",
-               i, ev.dt, ev.status,
-               ev.status == MIDI_CMD_SYS_RESET ? ' ' : '\n');
-        if(ev.status == MIDI_CMD_SYS_RESET) printf("meta=0x%02x\n", ev.meta);
-        if(ev.is_ascii) {
-            printf("                  params='%s'\n", (char *) ev.params);
+               i, ev->dt, ev->status,
+               ev->status == MIDI_CMD_SYS_RESET ? ' ' : '\n');
+        if(ev->status == MIDI_CMD_SYS_RESET) printf("meta=0x%02x\n", ev->meta);
+        if(ev->is_ascii) {
+            printf("                  params='%s'\n", (char *) ev->params);
         }
         else {
             printf("                  params=[");
-            for(j = 0; j < ev.param_len; j++) printf(" %02x", ev.params[j]);
+            for(j = 0; j < ev->param_len; j++) printf(" %02x", ev->params[j]);
             printf(" ]\n");
         }
-        if(ev.meta == MIDI_META_END)
-            break;
+
+        ev = ev->next;
     }
 
     free(bufmid);
