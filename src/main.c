@@ -25,7 +25,7 @@
 int main(int argc, char **argv)
 {
     FILE *fmid = NULL;
-    int size = 0, i, j;
+    int size = 0, i, j, t;
     uint8_t *bufmid = NULL;
     void *p = NULL;
     midi_header_t *h = NULL;
@@ -58,27 +58,32 @@ int main(int argc, char **argv)
             hdr_size_le(h), hdr_type_le(h), hdr_tracks_le(h), hdr_tdiv_le(h));
 
     p = (bufmid + sizeof(midi_header_t));
-    tc = midi_read_track(&p);
-    printf("debug: [track 0] id='%c%c%c%c' size=%u\n",
-           tc.id[0], tc.id[1], tc.id[2], tc.id[3], chk_size_le(&tc));
+    /* Only read one track for now */
+    for(t = 0; t < 1; t++) {
+        tc = midi_read_track(&p);
+        printf("debug: [track %i] id='%c%c%c%c' size=%u\n",
+               t, tc.id[0], tc.id[1], tc.id[2], tc.id[3], chk_size_le(&tc));
 
-    ev = tc.events;
-    for(i = 0; i < tc.num_events; i++) {
-        printf("debug: [track 0]\n"
-               "       +[event %d] dt=%u status=0x%x%c",
-               i, ev->dt, ev->status,
-               ev->status == MIDI_CMD_SYS_RESET ? ' ' : '\n');
-        if(ev->status == MIDI_CMD_SYS_RESET) printf("meta=0x%02x\n", ev->meta);
-        if(ev->is_ascii) {
-            printf("                  params='%s'\n", (char *) ev->params);
-        }
-        else {
-            printf("                  params=[");
-            for(j = 0; j < ev->param_len; j++) printf(" %02x", ev->params[j]);
-            printf(" ]\n");
+        ev = tc.events;
+        for(i = 0; i < tc.num_events; i++) {
+            printf("debug: [track %d]\n"
+                   "       +[event %d] dt=%u status=0x%x%c",
+                   t, i, ev->dt, ev->status,
+                   ev->status == MIDI_CMD_SYS_RESET ? ' ' : '\n');
+            if(ev->status == MIDI_CMD_SYS_RESET) printf("meta=0x%02x\n", ev->meta);
+            if(ev->is_ascii) {
+                printf("                  params='%s'\n", (char *) ev->params);
+            }
+            else {
+                printf("                  params=[");
+                for(j = 0; j < ev->param_len; j++) printf(" %02x", ev->params[j]);
+                printf(" ]\n");
+            }
+
+            ev = ev->next;
         }
 
-        ev = ev->next;
+        midi_free_track(&tc);
     }
 
     free(bufmid);

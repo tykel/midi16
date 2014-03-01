@@ -187,6 +187,9 @@ midi_event_t* midi_event_next(void **m);
 /* Read a whole track of events */
 midi_track_t midi_read_track(void **m);
 
+/* Traverse and free the linked list of events */
+void midi_free_track(midi_track_t *t);
+
 /* Helper functions for octave and note extraction */
 inline int get_octave(uint32_t n)
 {

@@ -36,7 +36,6 @@ midi_event_t* midi_event_next(void **m)
         case MIDI_CMD_NOTE_ON:
         case MIDI_CMD_AFTERTOUCH:
         case MIDI_CMD_CONT_CTRL:
-        case MIDI_CMD_PATCH_CHG:
             e->params[0] = *(*p)++;
             e->params[1] = *(*p)++;
             e->param_len = 2;
@@ -48,6 +47,7 @@ midi_event_t* midi_event_next(void **m)
             e->param_len = 2;
             break;
         /* 1-parameter commands/events */
+        case MIDI_CMD_PATCH_CHG:
         case MIDI_CMD_CHAN_PRSS:
             e->params[0] = *(*p)++;
             e->param_len = 1;
