@@ -170,6 +170,7 @@ midi_track_t midi_read_track(void **m)
 
     /* Copy id and chunk size */
     memcpy(&t, *m, sizeof(t.id) + sizeof(t.size));
+    t.num_events = 0;
     *m += sizeof(t.id) + sizeof(t.size);
 
     for(i = 0; ; i++) {
