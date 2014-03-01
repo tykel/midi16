@@ -58,7 +58,6 @@ typedef struct
 
 } midi_header_t;
 
-
 /* Big-endian chunk size access */
 static inline uint32_t hdr_size_le(midi_header_t *h)
 {
@@ -82,7 +81,6 @@ static inline uint16_t hdr_tdiv_le(midi_header_t *h)
 }
 
 
-
 /* MIDI Track Chunk structure. */
 typedef struct
 {
@@ -99,7 +97,6 @@ typedef struct
 
 } midi_track_t;
 
-
 /* Big-endian chunk size access */
 static inline uint32_t chk_size_le(midi_track_t *t)
 {
@@ -107,53 +104,99 @@ static inline uint32_t chk_size_le(midi_track_t *t)
                       t->size[1] << 16 | t->size[0] << 24);
 }
 
-
-
 /* MIDI command mask*/
 #define MIDI_CMD_FLAG 0x80
 
-/* MIDI event command types */
+/* MIDI Channel voic/mode event types
+ * The "normal" events in the track event stream.
+ * NOTE: unless the event is a SYSEX, the event type may be omitted for
+ * subsequent events of the same type.
+ */
+
+/* Release the given note */
 #define MIDI_CMD_NOTE_OFF   0x80
+/* Engage the given note; if velocity is 0, same as note off */
 #define MIDI_CMD_NOTE_ON    0x90
+/* Polyphonic key pressure; sent by pressing after "bottoming out" */
 #define MIDI_CMD_AFTERTOUCH 0xA0
+/* Change a controller value; see MIDI documentation */
 #define MIDI_CMD_CONT_CTRL  0xB0
+/* Change the patch/program for the track */
 #define MIDI_CMD_PATCH_CHG  0xC0
+/* Channel pressure; similar to aftertouch */
 #define MIDI_CMD_CHAN_PRSS  0xD0
+/* */
 #define MIDI_CMD_PITCH_BEND 0xE0
 #define MIDI_CMD_NON_MUS    0xF0
 
-/* MIDI SYSEX event types */
+/* MIDI System common event types */
+
+/* Signals the start of a SYStem EXclusive event, with variable length */
 #define MIDI_CMD_SYSEX_START    0xF0
+/* Marks a MIDI Time Code Quarter Frame, used for external synchronisation */
 #define MIDI_CMD_TCQF           0xF1
+/* Song Position Pointer value, number of beats (= 6 clocks) since start */
 #define MIDI_CMD_SONG_POS       0xF2
+/* Specifies the song to be played */
 #define MIDI_CMD_SONG_SEL       0xF3
+/* Request for analog synthesizers to tune their oscillators */
 #define MIDI_CMD_TUNE_REQ       0xF6
+/* Signals the end of a SYStem EXclusive event */
 #define MIDI_CMD_SYSEX_END      0xF7
+
+/* MIDI System real-time event types
+ * UNUSED in most standard MIDI files.
+ */
+
+/* Timing clock message, 24 times/quarter note if sync. required */
 #define MIDI_CMD_TIMING_CLK     0xF8
+/* Start current sequence playing (followed by TIMING_CLK) */
 #define MIDI_CMD_START          0xFA
+/* Continue current sequence playing (if stopped) */
 #define MIDI_CMD_CONTINUE       0xFB
+/* Stop current sequence playing */
 #define MIDI_CMD_STOP           0xFC
+/* Active sensing; a keep-alive message */
 #define MIDI_CMD_ACT_SENS       0xFE
+/* Reset receivers */
 #define MIDI_CMD_SYS_RESET      0xFF
 
-/* MIDI Meta-event types */
+/* MIDI Meta-event types 
+ * These events follow a SYS_RESET (= meta-event) command.
+ * They are typically found at the start of a MIDI track.
+ */
+/* Defines the sequence/track number, instead of implicit file ordering */
 #define MIDI_META_SEQ_NUM   0x00
+/* Specifies a general text comment */
 #define MIDI_META_TEXT      0x01
+/* Specifies a copyright message */
 #define MIDI_META_COPYRIGHT 0x02
+/* Specifies the track/sequence name */
 #define MIDI_META_SEQ_NAME  0x03
+/* Specifies the instrument name, e.g. the MIDI keyboard */
 #define MIDI_META_INSTR     0x04
+/* Specifies a lyric at the current point */
 #define MIDI_META_LYRIC     0x05
+/* Specifies a text marker; e.g., a loop start/end */
 #define MIDI_META_MARKER    0x06
+/* Specifies a "cue point" to display */
 #define MIDI_META_CUE_PT    0x07
+/* Specifies the program (patch) name; often instrument name */
 #define MIDI_META_PRG_NAME  0x08
+/* Specifies the MIDI device (port) name */
 #define MIDI_META_DEV_NAME  0x09
+/* Marks the end of a MIDI track */
 #define MIDI_META_END       0x2F
+/* Defines the tempo, in microseconds per quarter note */
 #define MIDI_META_TEMPO     0x51
+/* Defines the time signature; see MIDI documentation */
 #define MIDI_META_TIMESIG   0x58
+/* Defines the key signature: flats/key/sharps, major/minor */
 #define MIDI_META_KEYSIG    0x59
+/* Proprietary meta event; ignore this */
 #define MIDI_META_PROPR     0x7F
 
-#define MIDI_CMD_MAX_SIZE       255
+#define MIDI_CMD_MAX_SIZE   0xFF
 
 /* MIDI Event structure */
 typedef struct __midi_event_t
@@ -168,9 +211,13 @@ typedef struct __midi_event_t
     uint8_t param_len;
     /* Parameters */
     uint8_t params[MIDI_CMD_MAX_SIZE];
+    /* Used in case a string of MIDI_CMD_MAX_SIZE needs a '\0' */
+    char __pnt;
 
     /* Variable length value (only SYSEX events) */
     uint32_t varlen;
+    /* Channel the command applies to (if applicable) */
+    uint8_t channel;
     /* Lookup if params are an ASCII string */
     int8_t is_ascii;
     /* Next event for traversal */
@@ -182,7 +229,7 @@ typedef struct __midi_event_t
 static uint32_t read_varlen(uint8_t **m);
 
 /* Read the next MIDI event from memoru */
-midi_event_t* midi_event_next(void **m);
+midi_event_t* midi_event_next(void **m, uint8_t last_status);
 
 /* Read a whole track of events */
 midi_track_t midi_read_track(void **m);

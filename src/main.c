@@ -18,7 +18,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <unistd.h>
 
 #include "midi.h"
 
@@ -58,30 +57,38 @@ int main(int argc, char **argv)
             hdr_size_le(h), hdr_type_le(h), hdr_tracks_le(h), hdr_tdiv_le(h));
 
     p = (bufmid + sizeof(midi_header_t));
-    /* Only read one track for now */
-    for(t = 0; t < 1; t++) {
+    
+    for(t = 0; t < hdr_tracks_le(h); t++) {
         tc = midi_read_track(&p);
         printf("debug: [track %i] id='%c%c%c%c' size=%u\n",
                t, tc.id[0], tc.id[1], tc.id[2], tc.id[3], chk_size_le(&tc));
 
+#ifdef DEBUG_EVENTS
         ev = tc.events;
         for(i = 0; i < tc.num_events; i++) {
-            printf("debug: [track %d]\n"
-                   "       +[event %d] dt=%u status=0x%x%c",
-                   t, i, ev->dt, ev->status,
-                   ev->status == MIDI_CMD_SYS_RESET ? ' ' : '\n');
-            if(ev->status == MIDI_CMD_SYS_RESET) printf("meta=0x%02x\n", ev->meta);
+            printf("       +[event %d] dt=%u status=0x%x sz=%u ",
+                   i, ev->dt, ev->status, ev->param_len);
+            if(ev->status == MIDI_CMD_SYS_RESET)
+                printf("meta=0x%02x\n", ev->meta);
+            else if(ev->status < 0xF0)
+                printf("channel=%d\n", ev->channel);
+            else
+                printf("\n");
             if(ev->is_ascii) {
                 printf("                  params='%s'\n", (char *) ev->params);
             }
             else {
                 printf("                  params=[");
-                for(j = 0; j < ev->param_len; j++) printf(" %02x", ev->params[j]);
+                for(j = 0; j < ev->param_len; j++)
+                    printf(" %02x", ev->params[j]);
                 printf(" ]\n");
             }
 
             ev = ev->next;
         }
+#else
+        printf("                 events: %u\n", tc.num_events);
+#endif
 
         midi_free_track(&tc);
     }
