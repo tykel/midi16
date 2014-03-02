@@ -24,8 +24,10 @@
 static uint32_t read_varlen(uint8_t **m)
 {
     int i;
-    uint32_t dt = 0;
-    uint8_t **p = m;
+    uint32_t dt;
+    uint8_t **p;
+
+    dt = 0, p = m;
 
     if(!(**p & 0x80))
         return *(*p)++;
@@ -129,6 +131,7 @@ midi_event_t* midi_event_next(void **m, uint8_t last_status)
                 for(i = 0; i < e->param_len; i++)
                     e->params[i] = *(*p)++;
                 e->is_ascii = 1;
+                /*printf("text: '%s'\n", (char *) e->params);*/
                 break;
             case MIDI_META_END:
                 e->param_len = *(*p)++; /* 0 */
@@ -171,7 +174,9 @@ midi_track_t midi_read_track(void **m)
     /* Copy id and chunk size */
     memcpy(&t, *m, sizeof(t.id) + sizeof(t.size));
     t.num_events = 0;
-    *m += sizeof(t.id) + sizeof(t.size);
+    /* Default tempo of 120 bpm? */
+    t.tempo = 500000;
+    *(uint8_t *) m += sizeof(t.id) + sizeof(t.size);
 
     for(i = 0; ; i++) {
         e = midi_event_next(m, i > 0 ? old_e->status : 0);
@@ -184,6 +189,8 @@ midi_track_t midi_read_track(void **m)
         old_e = e;
         t.num_events++;
 
+        if(e->meta == MIDI_META_TEMPO)
+            t.tempo = e->params[0] | e->params[1] << 8 | e->params[2] << 16;
         if(e->meta == MIDI_META_END)
             break;
     }
@@ -204,3 +211,130 @@ void midi_free_track(midi_track_t *t)
     }
 }
 
+const char* midi_cmd_str(uint8_t cmd)
+{
+    const char *name;
+
+    switch(cmd & 0xF0) {
+    case MIDI_CMD_NOTE_OFF:
+        name = "CMD_NOTE_OFF";
+        break;
+    case MIDI_CMD_NOTE_ON:
+        name = "CMD_NOTE_ON";
+        break;
+    case MIDI_CMD_AFTERTOUCH:
+        name = "CMD_AFTERTOUCH";
+        break;
+    case MIDI_CMD_CONT_CTRL:
+        name = "CMD_CONT_CTRL";
+        break;
+    case MIDI_CMD_PATCH_CHG:
+        name = "CMD_PATCH_CHG";
+        break;
+    case MIDI_CMD_CHAN_PRSS:
+        name = "CMD_CHAN_PRSS";
+        break;
+    case MIDI_CMD_PITCH_BEND:
+        name = "CMD_PITCH_BEND";
+        break;
+    case MIDI_CMD_SYSEX_START:
+        name = "CMD_SYSEX_START";
+        break;
+    case MIDI_CMD_TCQF:
+        name = "CMD_TCQF";
+        break;
+    case MIDI_CMD_SONG_POS:
+        name = "CMD_SONG_POS";
+        break;
+    case MIDI_CMD_SONG_SEL:
+        name = "CMD_SONG_SEL";
+        break;
+    case MIDI_CMD_TUNE_REQ:
+        name = "CMD_TUNE_REQ";
+        break;
+    case MIDI_CMD_SYSEX_END:
+        name = "CMD_SYSEX_END";
+        break;
+    case MIDI_CMD_TIMING_CLK:
+        name = "CMD_TIMING_CLK";
+        break;
+    case MIDI_CMD_START:
+        name = "CMD_START";
+        break;
+    case MIDI_CMD_CONTINUE:
+        name = "CMD_CONTINUE";
+        break;
+    case MIDI_CMD_STOP:
+        name = "CMD_STOP";
+        break;
+    case MIDI_CMD_ACT_SENS:
+        name = "CMD_ACT_SENS";
+        break;
+    case MIDI_CMD_SYS_RESET:
+        name = "CMD_SYS_RESET";
+        break;
+    default:
+        name = "(unknown)";
+        break;
+    }
+    
+    return name;
+}
+
+const char* midi_meta_str(uint8_t meta)
+{
+    const char *name;
+
+    switch(meta) {
+    case MIDI_META_SEQ_NUM:
+        name = "META_SEQ_NUM";
+        break;
+    case MIDI_META_TEXT:
+        name = "META_TEXT";
+        break;
+    case MIDI_META_COPYRIGHT:
+        name = "META_COPYRIGHT";
+        break;
+    case MIDI_META_SEQ_NAME:
+        name = "META_SEQ_NAME";
+        break;
+    case MIDI_META_INSTR:
+        name = "META_INSTR";
+        break;
+    case MIDI_META_LYRIC:
+        name = "META_LYRIC";
+        break;
+    case MIDI_META_MARKER:
+        name = "META_MARKER";
+        break;
+    case MIDI_META_CUE_PT:
+        name = "META_CUE_PT";
+        break;
+    case MIDI_META_PRG_NAME:
+        name = "META_PRG_NAME";
+        break;
+    case MIDI_META_DEV_NAME:
+        name = "META_DEV_NAME";
+        break;
+    case MIDI_META_END:
+        name = "META_END";
+        break;
+    case MIDI_META_TEMPO:
+        name = "META_TEMPO";
+        break;
+    case MIDI_META_TIMESIG:
+        name = "META_TIMESIG";
+        break;
+    case MIDI_META_KEYSIG:
+        name = "META_KEYSIG";
+        break;
+    case MIDI_META_PROPR:
+        name = "META_PROPR";
+        break;
+    default:
+        name = "(unknown)";
+        break;
+    }
+
+    return name;
+}

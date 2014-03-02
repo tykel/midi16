@@ -94,6 +94,8 @@ typedef struct
 
     /* Number of events */
     int num_events;
+    /* Tempo -- set by event */
+    uint32_t tempo;
 
 } midi_track_t;
 
@@ -226,7 +228,7 @@ typedef struct __midi_event_t
 } midi_event_t;
 
 /* (Internal) Read variable-length dt used in event */
-static uint32_t read_varlen(uint8_t **m);
+/*static uint32_t read_varlen(uint8_t **m);*/
 
 /* Read the next MIDI event from memoru */
 midi_event_t* midi_event_next(void **m, uint8_t last_status);
@@ -247,5 +249,21 @@ inline int get_note(uint32_t n)
 {
     return n % 12;
 }
+
+inline int get_bpm(uint32_t uspqn)
+{
+    return 60000000/uspqn;
+}
+
+inline int get_bps(uint32_t uspqn)
+{
+    return 1000000/uspqn;
+}
+
+/* Command code to string */
+const char* midi_cmd_str(uint8_t cmd);
+
+/* Meta event code to string */
+const char* midi_meta_str(uint8_t meta);
 
 #endif
