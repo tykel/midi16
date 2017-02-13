@@ -96,6 +96,8 @@ typedef struct
     int num_events;
     /* Tempo -- set by event */
     uint32_t tempo;
+    /* Pulse length */
+    uint32_t pulse_len;
 
 } midi_track_t;
 
@@ -234,7 +236,7 @@ typedef struct __midi_event_t
 midi_event_t* midi_event_next(void **m, uint8_t last_status);
 
 /* Read a whole track of events */
-midi_track_t midi_read_track(void **m);
+midi_track_t midi_read_track(void **m, midi_header_t *h);
 
 /* Traverse and free the linked list of events */
 void midi_free_track(midi_track_t *t);

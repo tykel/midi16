@@ -26,7 +26,7 @@
 
 /* Write a standard MIDI track straight to file in Chip16 assembly */
 int chip16_write_track(const char *fn_asm, const char *fn_notes,
-                       midi_track_t *track, uint32_t mspq);
+                       midi_track_t *track);
 
 #endif
 

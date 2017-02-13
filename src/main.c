@@ -85,10 +85,10 @@ int main(int argc, char **argv)
     
     for(t = 0; t < hdr_tracks_le(h); t++) {
         midi_event_t *ev = NULL;
-        tc[t] = midi_read_track(&p);
-        printf("debug: [track %i] id: '%c%c%c%c', size: %u, tempo: %u\n",
+        tc[t] = midi_read_track(&p, h);
+        printf("debug: [track %i] id: '%c%c%c%c', size: %u, tempo: %u (%u bpm)\n",
                t, tc[t].id[0], tc[t].id[1], tc[t].id[2], tc[t].id[3],
-               chk_size_le(&tc[t]), tc[t].tempo);
+               chk_size_le(&tc[t]), tc[t].tempo, 60000000/tc[t].tempo);
 
 #ifdef DEBUG_EVENTS
         ev = tc[t].events;
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
     }
     
     printf("writing chip16 asm to 'test.s', notes to 'test.bin' ... ");
-    chip16_write_track("test.s", "test.bin", &tc[channel], tdiv);
+    chip16_write_track("test.s", "test.bin", &tc[channel]);
     printf("done.\n");
     
     for(t = 0; t < hdr_tracks_le(h); t++)

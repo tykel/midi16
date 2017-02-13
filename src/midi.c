@@ -164,12 +164,13 @@ midi_event_t* midi_event_next(void **m, uint8_t last_status)
     return e;
 }
 
-midi_track_t midi_read_track(void **m)
+midi_track_t midi_read_track(void **m, midi_header_t *h)
 {
     int i;
     uint8_t **p;
     midi_track_t t;
     midi_event_t *e, *old_e;
+    uint32_t ppqn = h->time_div[0] << 8 | h->time_div[1];
 
     /* Copy id and chunk size */
     memcpy(&t, *m, sizeof(t.id) + sizeof(t.size));
@@ -189,8 +190,10 @@ midi_track_t midi_read_track(void **m)
         old_e = e;
         t.num_events++;
 
-        if(e->meta == MIDI_META_TEMPO)
-            t.tempo = e->params[0] | e->params[1] << 8 | e->params[2] << 16;
+        if(e->meta == MIDI_META_TEMPO) {
+            t.tempo = e->params[0] << 16 | e->params[1] << 8 | e->params[2];
+            t.pulse_len = 60000/ ((60000000/t.tempo) * ppqn);
+        }
         if(e->meta == MIDI_META_END)
             break;
     }
