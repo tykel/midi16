@@ -98,6 +98,8 @@ typedef struct
     uint32_t tempo;
     /* Pulse length */
     uint32_t pulse_len;
+    /* Patch (instrument) */
+    uint8_t patch;
 
 } midi_track_t;
 

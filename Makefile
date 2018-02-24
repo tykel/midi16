@@ -1,15 +1,18 @@
 CC=gcc
 CFLAGS_COMMON=-std=c99 -pedantic -Wall -Wno-unused-variable -Wdeclaration-after-statement
-CFLAGS=-O2 -s $(CFLAGS_COMMON)
+CFLAGS=-O0 -g $(CFLAGS_COMMON)
 LDFLAGS=-lm
 OBJECTS=obj/main.o obj/midi.o obj/chip16.o
 
 .PHONY: all clean debug
 
-all: midi16
+all: midi16 tags
 
-debug: CFLAGS=-O0 -g $(CFLAGS_COMMON)
-debug: midi16
+debug: CFLAGS=-O0 -g -DDEBUG_EVENTS $(CFLAGS_COMMON)
+debug: midi16 tags
+
+tags: midi16
+	ctags -R .
 
 midi16: $(OBJECTS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)

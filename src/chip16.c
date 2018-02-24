@@ -33,7 +33,7 @@ static const char *asm_string =
 "    ldm r1, r4 ; read note\n"
 "    cmpi r1, 0xFFFF\n"
 "    jz init\n"
-"    stm r1, r2 ; store it in note\n"
+"    mov r2, r1 ; store it in note\n"
 "    mov r5, r1\n"
 "    addi r4, 2 ; point at dt\n"
 "    ldm r1, r4 ; read dt\n"
@@ -78,23 +78,30 @@ static inline float key2hz(int key)
 int chip16_write_track(const char *fn_asm, const char *fn_notes,
                        midi_track_t *track)
 {
-    FILE *fasm, *fnotes;
+    const char *fn_notes_alt = "mus_menu.bin";
+    FILE *fasm, *fnotes, *fnotes_alt;
     char importstr[256];
     midi_event_t *evt;
     /* Timing information */
-    int i, start, last_start, end, total;
+    int i, start, last_start, end, last_end, total;
     /* Note and dt packed together for writing */
     uint16_t note_dt[2];
+    int16_t packet[4];
     /* Milliseconds per pulse */
     uint32_t mspp;
     /* For each key/note, check if on or off */
     int note_on[NUM_NOTES];
     /* For each key/note, record the start time */
-    int note_start[NUM_NOTES];
+    int note_start[NUM_NOTES] = {0};
+    int note_end[NUM_NOTES] = {0};
     
     /* Write the notes to a separate file */
     if((fnotes = fopen(fn_notes, "wb")) == NULL) {
         printf("error: could not open %s for writing\n", fn_notes);
+        return -2;
+    }
+    if((fnotes_alt = fopen(fn_notes_alt, "wb")) == NULL) {
+        printf("error: could not open %s for writing\n", fn_notes_alt);
         return -2;
     }
   
@@ -104,6 +111,8 @@ int chip16_write_track(const char *fn_asm, const char *fn_notes,
     mspp = track->pulse_len;
     printf("using %d ms per pulse\n", mspp); 
     evt = track->events;
+
+    last_end = 0;
 
     for(i = total = start = last_start = end = 0; i < track->num_events; i++) {
         if(evt->status >= MIDI_CMD_NON_MUS) {
@@ -123,20 +132,30 @@ int chip16_write_track(const char *fn_asm, const char *fn_notes,
                 fwrite(note_dt, sizeof(uint16_t), 2, fnotes);
                 total++;
             }
-            last_start = start;
         } else if((evt->status & 0xF0) == MIDI_CMD_NOTE_OFF ||
                   ((evt->status & 0xF0) == MIDI_CMD_NOTE_ON && !evt->params[1])) {
             uint16_t note_dt[2];
             
             /* Note is released, time to write it now we know its duration */
             note_dt[0] = (uint16_t) key2hz(evt->params[0]);
+               packet[1] = (int16_t) key2hz(evt->params[0]);
             end = note_start[evt->params[0]] + evt->dt;
+            if (last_end == 0) {
+               last_end = end;
+            }
+               packet[0] = (end - last_end) * mspp / 16;
+            if (packet[0] < 0) packet[0] = 0;
+               last_end = end;
+               packet[2] = (end - note_start[evt->params[0]]) * mspp / 16;
+               packet[3] = 0x0432; 
             note_dt[1] = (end - note_start[evt->params[0]]) * mspp;
 
             fwrite(note_dt, sizeof(uint16_t), 2, fnotes);
+               fwrite(packet, sizeof(int16_t), 4, fnotes_alt);
             total++;
             start += evt->dt;
             note_on[evt->params[0]] = 0;
+            last_start = start;
         }
         
         evt = evt->next;
@@ -144,6 +163,7 @@ int chip16_write_track(const char *fn_asm, const char *fn_notes,
 
     printf("wrote %d notes, ", total);
     
+    fclose(fnotes_alt);
     fclose(fnotes);
 
     /* Write the Chip16 code to play the notes */
